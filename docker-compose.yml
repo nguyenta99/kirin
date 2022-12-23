@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  app:
+    platform: linux/x86_64
+    build:
+      context: .
+      dockerfile: ./docker/rails/Dockerfile
+    depends_on:
+      - database
+    ports:
+      - "3010:3000"
+    volumes:
+      - .:/kirin
+      - tmp_data:/kirin/tmp
+      - log_data:/kirin/log
+      - vendor:/kirin/vendor
+      - gem_dir:/usr/local/bundle
+      - gem_cache:/usr/local/bundle/gems
+    env_file: .env
+  database:
+    image: postgres:12.1
+    ports:
+      - "54320:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  gem_cache:
+  db_data:
+  tmp_data:
+  log_data:
+  vendor:
+  gem_dir:
+
+
