@@ -1,12 +1,13 @@
-name: Deploy To Development (with cap)
+name: Deploy To Fargate
 
 on:
   push:
-    branches:
-      - kirin_development
+    branches: [ kirin_development ]
 
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Test
+      - name: Checkout code
+        uses: actions/checkout@v2
