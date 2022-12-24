@@ -1,6 +1,20 @@
 version: "3"
 
 services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
+      args:
+        - HOST=${HOST}
+    # restart: on-failure
+    depends_on:
+      - app
+    ports:
+      - 80:80
+      - 443:443
+    env_file:
+      - .env
   app:
     platform: linux/x86_64
     build:
@@ -9,7 +23,7 @@ services:
     depends_on:
       - database
     ports:
-      - "3010:3000"
+      - "3000:3000"
     volumes:
       - .:/kirin
       - tmp_data:/kirin/tmp
