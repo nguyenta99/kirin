@@ -4,6 +4,9 @@ on:
   push:
     branches: [ kirin_development ]
 
+env:
+  REGION: 
+
 jobs:
   deploy:
     name: Deploy
@@ -12,4 +15,4 @@ jobs:
       - name: Checkout code
         # uses: actions/checkout@v2
         run: 
-          echo $GITHUB_ENV
+          echo "$GITHUB_ENV"
