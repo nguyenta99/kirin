@@ -1,5 +1,15 @@
 version: "3"
 
+volumes:
+  gem_cache:
+  db_data:
+  tmp_data:
+  log_data:
+  vendor:
+  gem_dir:
+  sockets:
+  elasticsearch:
+
 services:
   nginx:
     build:
@@ -10,40 +20,91 @@ services:
     # restart: on-failure
     depends_on:
       - app
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: sockets
+        target: /app/tmp/sockets
+        volume:
+          nocopy: true
     ports:
       - 80:80
       - 443:443
     env_file:
       - .env
+    volumes_from:
+      - app
+      
   app:
     platform: linux/x86_64
+    working_dir: /app
     build:
       context: .
       dockerfile: ./docker/rails/Dockerfile
-    depends_on:
-      - database
+    command: bash -c "bundle install && bundle exec rails db:migrate && bundle exec puma -C config/puma.rb"
     ports:
-      - "3000:3000"
+      - "3000"
     volumes:
-      - .:/kirin
-      - tmp_data:/kirin/tmp
-      - log_data:/kirin/log
-      - vendor:/kirin/vendor
+      - tmp_data:/app/tmp
+      - log_data:/app/log
+      - vendor:/app/vendor
       - gem_dir:/usr/local/bundle
       - gem_cache:/usr/local/bundle/gems
+      - /var/tmp
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: sockets
+        target: /app/tmp/sockets
+        volume:
+          nocopy: true
     env_file: .env
   database:
-    image: postgres:12.1
+    build:
+      context: .
+      dockerfile: ./docker/postgresql/Dockerfile
     ports:
       - "54320:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
-volumes:
-  gem_cache:
-  db_data:
-  tmp_data:
-  log_data:
-  vendor:
-  gem_dir:
+
+  # Set up ELK stack
+  elasticsearch:
+    image: elasticsearch:8.5.3
+    container_name: elasticsearch
+    hostname: elasticsearch
+    environment:
+      - "discovery.type=single-node"
+    ports:
+      - 9200:9200
+      - 9300:9300
+  
+  kibana:
+    image: kibana:8.5.3
+    container_name: kibana
+    hostname: kibana
+    ports:
+      - 5601:5601
+    links:
+      - elasticsearch:elasticsearch
+    depends_on:
+      - elasticsearch
+  
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.5.3
+    container_name: logstash
+    hostname: logstash
+    ports:
+      - 9600:9600
+      - 8089:8089
+    volumes:
+      - ./logstash:/usr/share/logstash/pipeline/
+    links:
+      - elasticsearch:elasticsearch
+    depends_on:
+      - elasticsearch
 
 

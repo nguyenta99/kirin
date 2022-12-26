@@ -14,12 +14,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/prod'
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.REGION }}
           role-duration-seconds: 1800
+      - name: Set env variables
+        if: github.ref == 'refs/heads/prod'
+        run:
+          echo "ENV_NAME=prod" >> $GITHUB_ENV|
+          echo "VPC_CIDR=172.31.0.0/16" >> $GITHUB_ENV
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create env file
+        run: |
+          touch .env
+          echo HOST="localhost" >> .env|
+          echo RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY}} >> .env|
+          cat .env
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -27,16 +41,42 @@ jobs:
       - name: Build, tag, and push nginx image to Amazon ECR
         id: build-image
         env:
-          ECR_REGISTRY: ${{ steps.amazon-ecr-login.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}-nginx
           IMAGE_TAG: ${{ github.sha }}
-          DOCKER_BUILDKIT: 1
         run: |
           docker build \
             --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
-            -f ./docker/nginx/Dockerfile \
+            -f docker/nginx/Dockerfile \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        
+      
+      - name: Build, tag, and push rails image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}-rails
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
+            -f docker/rails/Dockerfile \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker system prune
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Download ecspresso
+        uses: kayac/ecspresso@v1
+        with:
+          version: v1.7.13
+
+      - name: Register task definition
+        run: ecspresso register --config config_$ENV_NAME.yaml
+        working-directory: ecspresso
+
+      - name: Deploy to ecs
+        run: ecspresso deploy --config config_$ENV_NAME.yaml
+        working-directory: ecspresso

@@ -6,7 +6,6 @@
 .bundle
 .byebug_history
 .rspec
-tmp
 log
 test
 config/deploy

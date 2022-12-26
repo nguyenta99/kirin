@@ -3,8 +3,9 @@ ARG NGINX_VERSION=1.17.9
 FROM nginx:${NGINX_VERSION}
 
 ARG HOST
+ARG APP_PATH=/app
 
-ARG APP_PATH=/kirin
+USER root
 
 RUN apt-get update && apt-get -y install \
     vim \
@@ -14,11 +15,13 @@ RUN apt-get update && apt-get -y install \
     --no-install-recommends apt-utils && \
     rm -r /var/lib/apt/lists/*
 
-WORKDIR ${APP_PATH}
-
 COPY docker/nginx/nginx.conf /tmp/
 
-RUN envsubst '${APP_PATH} ${HOST}' < /tmp/nginx.conf > /etc/nginx/conf.d/default.conf
+RUN envsubst '${APP_PATH} ${HOST}' < /tmp/nginx.conf > /etc/nginx/nginx.conf
+
+ADD ./ ${APP_PATH}
+RUN chmod -R 777 ${APP_PATH}
+WORKDIR ${APP_PATH}
 
 EXPOSE 80
 

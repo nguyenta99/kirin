@@ -1,0 +1,43 @@
+{
+  "deploymentConfiguration": {
+    "deploymentCircuitBreaker": {
+      "enable": false,
+      "rollback": false
+    },
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 100
+  },
+  "deploymentController": {
+    "type": "ECS"
+  },
+  "desiredCount": 2,
+  "enableECSManagedTags": true,
+  "enableExecuteCommand": true,
+  "healthCheckGracePeriodSeconds": 600,
+  "launchType": "FARGATE",
+  "loadBalancers": [
+    {
+      "containerName": "nginx",
+      "containerPort": 80,
+      "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:132589977425:targetgroup/kirin-target-group/a81791063d135cdc"
+    }
+  ],
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "assignPublicIp": "ENABLED",
+      "securityGroups": [
+        "sg-03d5041feeb4ce08c"
+      ],
+      "subnets": [
+        "subnet-0f658d5d6775c6059",
+        "subnet-0e3bf8246735526c5"
+      ]
+    }
+  },
+  "pendingCount": 0,
+  "platformFamily": "Linux",
+  "platformVersion": "1.4.0",
+  "propagateTags": "NONE",
+  "runningCount": 0,
+  "schedulingStrategy": "REPLICA"
+}

@@ -1,7 +1,7 @@
 FROM ruby:2.7.1
 
 ARG BUNDLER_VERSION=2.3.19
-ENV RAILS_ROOT /kirin
+ENV RAILS_ROOT /app
 
 ENV BUNDLER_VERSION=${BUNDLER_VERSION}
 ENV BUNDLER_PATH=/bundle BUNDLE_BIN=/bundle/bin GEM_HOME=/bundle
@@ -20,7 +20,6 @@ RUN apt-get update && \
     gnupg2 \
     curl \
     wget \
-    nodejs \
     patch \
     ruby-dev \
     zlib1g-dev \
@@ -28,9 +27,17 @@ RUN apt-get update && \
     libmariadb-dev
 
 RUN gem install bundler -v ${BUNDLER_VERSION}
-RUN mkdir -p tmp/sockets
+RUN mkdir -p $RAILS_ROOT/tmp/sockets
+RUN mkdir -p $RAILS_ROOT/tmp/pids
+
 RUN gem install spring
 
+EXPOSE 3000
+
+RUN bundle install
+
 ENTRYPOINT ["docker/entrypoint.sh"]
+
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb" ]
 
 # Note: run export DISABLE_SPRING=true on Terminal before run rails console
