@@ -31,13 +31,12 @@ jobs:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}-nginx
           IMAGE_TAG: ${{ github.sha }}
           DOCKER_BUILDKIT: 1
-        # run: |
-        #   docker build \
-        #     --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
-        #     -f ./docker/nginx/Dockerfile \
-        #     -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-        #     -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        #   docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        #   docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         run: |
-          echo $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker build \
+            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . \
+            -f ./docker/nginx/Dockerfile \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        
